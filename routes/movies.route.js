@@ -10,12 +10,52 @@ const escapeString = (str) => {
 
 
 moviesRouter.get("/", async (req, res) => {
-    const { limit } = req.query;
+    const { limit, idGenre } = req.query;
 
     let finalQuery = "SELECT * FROM movie";
 
+    if (idGenre) {
+        finalQuery = `SELECT * FROM movie INNER JOIN genres ON movie.id_genre=genres.id WHERE movie.id_genre=${idGenre}`;
+    }
+
     if (limit) {
-        finalQuery = `SELECT * FROM movie LIMIT ${limit}`;
+        finalQuery = `${finalQuery} LIMIT ${limit}`;
+    }
+
+    const [data] = await sequelizeConnection.query(finalQuery);
+    res.json(data);
+});
+
+moviesRouter.get("/by-service", async (req, res) => {
+    const { limit, idService } = req.query;
+
+    if (!idService) {
+        res.status(400).json({
+            message: "idGenre is required",
+            error: true,
+        });
+
+        return;
+    }
+
+    let finalQuery = `
+        SELECT
+            movie.id AS movieId,
+            title AS movieTitle,
+            year,
+            plot,
+            rating,
+            language,
+            service.name AS serviceName
+        FROM
+            movie INNER JOIN service_movie
+            ON movie.id=service_movie.id_movie
+            INNER JOIN service ON service_movie.id_service=service.id
+        WHERE service_movie.id_service='${idService}';
+    `;
+
+    if (limit) {
+        finalQuery = `${finalQuery} LIMIT ${limit}`;
     }
     
     const [data] = await sequelizeConnection.query(finalQuery);

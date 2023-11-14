@@ -7,7 +7,70 @@ const usersRouter = Router();
 usersRouter.get("/", async (req, res) => {
     const [data] = await sequelizeConnection.query("SELECT * FROM user");
     res.json(data);
-})
+});
+
+usersRouter.get("/favorite-genre-movies", async (req, res) => {
+    const { idUser } = req.query;
+
+    if (!idUser) {
+        res.status(400).json({
+            message: "idUser is required",
+            error: true,
+        });
+
+        return;
+    }
+
+    const query = `
+        SELECT
+            movie.title as movieTitle,
+            genres.name as movieGenre,
+            plot
+        FROM user
+        INNER JOIN genres
+            ON user.id_favorite_genre=genres.id
+        INNER JOIN movie
+            ON genres.id=movie.id_genre
+        WHERE user.id=${idUser};
+    `;
+
+    const [data] = await sequelizeConnection.query(query);
+    res.json(data);
+});
+
+usersRouter.get("/movies-from-services", async (req, res) => {
+    const { idUser } = req.query;
+
+    if (!idUser) {
+        res.status(400).json({
+            message: "idUser is required",
+            error: true,
+        });
+
+        return;
+    }
+
+    const query = `
+        SELECT
+            first_name AS userName,
+            last_name AS userLastName,
+            service_movie.id_service AS service,
+            imdbId,
+            title AS movieTitle,
+            plot
+        FROM user
+        INNER JOIN user_service
+            ON user.id=user_service.id_user
+        INNER JOIN service_movie
+            ON user_service.id_service = service_movie.id_service
+        INNER JOIN movie
+            ON service_movie.id_movie = movie.id
+        WHERE user.id=${idUser};
+    `;
+
+    const [data] = await sequelizeConnection.query(query);
+    res.json(data);
+});
 
 usersRouter.get("/:id", async (req, res) => {
     const { id } = req.params;
